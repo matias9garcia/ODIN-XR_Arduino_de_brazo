@@ -47,7 +47,7 @@ void PosicionSecundaria(){
 
 void PosicionTerciaria(){
    //(step delay, M1, M2, M3, M4, M5, M6);
-  Braccio.ServoMovement(20,180,15, 180, 0, 0,70);  
+  Braccio.ServoMovement(20,90,110, 160, 110, 0,70);  
   delay(500);
 }
 
