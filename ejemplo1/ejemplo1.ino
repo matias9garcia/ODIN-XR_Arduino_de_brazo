@@ -17,10 +17,11 @@ int signo=0;
 
 void setup() {
  Braccio.begin();
+ PosicionSegura();
  Serial.begin(9600);
- PosicionInicial();
- BTSerial.begin(9600); 
-  
+ delay(500);  // evita perder el primer dígito
+ BTSerial.begin(9600);
+ Serial.println("READY");
 }
 
  /*
@@ -38,31 +39,44 @@ void PosicionInicial(){
   delay(500);
 }
 
+void PosicionSecundaria(){
+   //(step delay, M1, M2, M3, M4, M5, M6);
+  Braccio.ServoMovement(20,90,15, 180, 0, 0,  10);  
+  delay(500);
+}
+
+void PosicionTerciaria(){
+   //(step delay, M1, M2, M3, M4, M5, M6);
+  Braccio.ServoMovement(20,180,15, 180, 0, 0,70);  
+  delay(500);
+}
+
 void PosicionSegura(){
    //(step delay, M1, M2, M3, M4, M5, M6);
   m1=90;
   m2=45;
   m3=180;
   m4=180;
-  m5=90;
+  m5=70;
   m6=10;
   Braccio.ServoMovement(30,m1,m2, m3, m4, m5, m6);  
 }
 
-void CambioDePosicion(){
-  if (Serial.available() > 0) {
-    char input = Serial.read();  // lee un solo carácter
-    if (input == '1') {
+void CambioDePosicion(int m1, int m2, int m3, int m4, int m5, int m6) {
+    if (m1 >= 0 && m1 < 60) {
       PosicionInicial();
     }
-    else if (input == '2') {
-      PosicionSegura();
+    else if (m1 >= 60 && m1 < 120) {
+      PosicionSecundaria();
+    }
+    else if (m1 >= 120 && m1 < 180) {
+      PosicionTerciaria();
     }
     else {
-      Serial.println("Comando inválido. Ingresa 1 o 2.");
+      Serial.println("Comando inválido.");
     }
-  }
 }
+
 
 // =============================
 // CINEMÁTICA INVERSA Braccio
@@ -125,12 +139,8 @@ void MoverConIK(float x, float y, float z){
 
   // Calcular valores dinámicos
   float R_min, R_max, Z_min, Z_max;
-  CalcularRangos(R_min, R_max, Z_min, Z_max);
 
   float R = sqrt(x*x + y*y);
-
-  // Mostrar rangos
-  ImprimirRangos();
 
   // Mostrar el punto solicitado
   Serial.print("Intentando mover a → X="); Serial.print(x);
@@ -180,99 +190,58 @@ void MoverConIK(float x, float y, float z){
   }
 }
 
-// =============================
-// RANGO DINÁMICO DEL BRACCIO
-// =============================
-void CalcularRangos(float &R_min, float &R_max, float &Z_min, float &Z_max) {
-  R_min = abs(L2 - L3);      // mínimo radial (brazo doblado sobre sí mismo)
-  R_max = L2 + L3;           // máximo radial (brazo extendido)
-  Z_min = 0;                 // asumiendo mesa en z=0
-  Z_max = d1 + (L2 + L3);    // máximo vertical
-}
 
-void ImprimirRangos() {
-  float R_min, R_max, Z_min, Z_max;
-  CalcularRangos(R_min, R_max, Z_min, Z_max);
-
-  Serial.println("=== RANGO PERMITIDO DEL BRACCIO ===");
-  Serial.print("Radio mínimo (R_min): "); Serial.print(R_min); Serial.println(" cm");
-  Serial.print("Radio máximo (R_max): "); Serial.print(R_max); Serial.println(" cm");
-  Serial.print("Altura mínima (Z_min): "); Serial.print(Z_min); Serial.println(" cm");
-  Serial.print("Altura máxima (Z_max): "); Serial.print(Z_max); Serial.println(" cm");
-  Serial.println("===================================");
-}
-
+String inputString = "";
+bool stringComplete = false;
 
 void loop() {
-  //Serial.println(BTSerial.available());
-  if (Serial.available()){
-      String cmd = Serial.readStringUntil('\n');
 
-      if(cmd.startsWith("IK")){
-        float x = cmd.substring(3, cmd.indexOf(',')).toFloat();
-        float y = cmd.substring(cmd.indexOf(',')+1, cmd.lastIndexOf(',')).toFloat();
-        float z = cmd.substring(cmd.lastIndexOf(',')+1).toFloat();
-        MoverConIK(x,y,z);
-      }
+  // Braccio.ServoMovement(20,0,15, 180, 0, 0,10);  
+  // delay(5000);
+
+  // Braccio.ServoMovement(20,0,15, 180, 0, 0,70);  
+  // delay(5000);
+
+  // Lectura de caracteres del puerto serial
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n') {
+      stringComplete = true;
+    } else {
+      inputString += c;
+    }
   }
 
-  CambioDePosicion();
+  // Si llegó una línea completa
+  if (stringComplete) {
 
-  
+    int m1, m2, m3, m4, m5, m6;
 
-  // if (BTSerial.available()){   // read from HC-05 and send to Arduino Serial Monitor
-  //     opcion=BTSerial.read();
-  //     Serial.println(opcion);
-  // switch(opcion){
-  //   case '0': 
-  //      PosicionSegura();
-  //   break;
-    
-  //   case '1': //M1
-  //     if(signo==1)m1=m1+10;else m1=m1-10;
-  //     Braccio.ServoMovement(30,m1,m2, m3, m4, m5,  m6);  
-  //     delay(500);
-  //   break;
+    // Parseo limpio sin breaks ni loops complejos
+    int parsed = sscanf(
+      inputString.c_str(),
+      "%d,%d,%d,%d,%d,%d",
+      &m1, &m2, &m3, &m4, &m5, &m6
+    );
 
-  //   case '2': //M2
-  //     if(signo==1)m2=m2+10; else m2=m2-10;
-  //     Braccio.ServoMovement(30,m1,m2, m3, m4, m5,  m6);  
-  //     delay(500);
-  //   break;
+    if (parsed == 6) {
+      // Llamar a la función con las 6 variables por nombre
+      CambioDePosicion(m1, m2, m3, m4, m5, m6);
+      Serial.println(
+        String("Arduino recibió: ") +
+        m1 + "," +
+        m2 + "," +
+        m3 + "," +
+        m4 + "," +
+        m5 + "," +
+        m6
+      );
+    } else {
+      Serial.println("ERROR_FORMATO");
+    }
 
-  //   case '3': // M3
-  //     if(signo==1)m3=m3+10;else m3=m3-10;
-  //     Braccio.ServoMovement(30,m1,m2, m3, m4, m5,  m6);  
-  //     delay(500);
-  //    break;
-  //   case '4': //M4
-  //      if(signo==1)m4=m4+10;else m4=m4-10;
-  //      Braccio.ServoMovement(30,m1,m2, m3, m4, m5,  m6);  
-  //      delay(500);
-  //    break;
-
-  //    case '5': //M5
-  //      if(signo==1)m5=m5+10;else m5=m5-10;
-  //      Braccio.ServoMovement(30,m1,m2, m3, m4, m5,  m6);  
-  //      delay(500);
-  //    break;
-
-  //    case '6': //M6
-  //      if(signo==1)m6=m6+10;else m6=m6-10;
-  //      Braccio.ServoMovement(30,m1,m2, m3, m4, m5,  m6);  
-  //      delay(500);
-  //    break;
-
-  //    case '7': //signo ++
-  //      signo=1;
-  //    break;
-
-  //    case '8': //signo --
-  //       signo=0;
-  //    break;
-
-  //  }
-     
-  // }
- 
+    // Reset del buffer
+    inputString = "";
+    stringComplete = false;
+  }
 }
