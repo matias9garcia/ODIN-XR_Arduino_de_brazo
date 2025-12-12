@@ -17,7 +17,7 @@ int signo=0;
 
 void setup() {
  Braccio.begin();
- PosicionSegura();
+ PosicionInicial();
  Serial.begin(9600);
  delay(500);  // evita perder el primer dígito
  BTSerial.begin(9600);
@@ -35,19 +35,19 @@ void setup() {
   */
 void PosicionInicial(){
    //(step delay, M1, M2, M3, M4, M5, M6);
-  Braccio.ServoMovement(20,0,15, 180, 0, 0,  10);  
+  Braccio.ServoMovement(80,0,15, 180, 0, 0,  10);  
   delay(500);
 }
 
 void PosicionSecundaria(){
    //(step delay, M1, M2, M3, M4, M5, M6);
-  Braccio.ServoMovement(20,90,15, 180, 0, 0,  10);  
+  Braccio.ServoMovement(80,90,15, 180, 0, 0,  10);  
   delay(500);
 }
 
 void PosicionTerciaria(){
    //(step delay, M1, M2, M3, M4, M5, M6);
-  Braccio.ServoMovement(20,90,110, 160, 110, 0,70);  
+  Braccio.ServoMovement(80,90,110, 160, 110, 0,70);  
   delay(500);
 }
 
@@ -63,18 +63,27 @@ void PosicionSegura(){
 }
 
 void CambioDePosicion(int m1, int m2, int m3, int m4, int m5, int m6) {
-    if (m1 >= 0 && m1 < 60) {
-      PosicionInicial();
-    }
-    else if (m1 >= 60 && m1 < 120) {
-      PosicionSecundaria();
-    }
-    else if (m1 >= 120 && m1 < 180) {
-      PosicionTerciaria();
-    }
-    else {
-      Serial.println("Comando inválido.");
-    }
+    Braccio.ServoMovement(80,m1,m2, m3, m4, m5, m6);
+    delay(5000);
+    // if (m1 >= 0 && m1 < 60) {
+    //   PosicionInicial();
+    // }
+    // else if (m1 >= 60 && m1 < 120) {
+    //   PosicionTerciaria();
+    // }
+    // else if (m1 >= 120 && m1 < 180) {
+    //   PosicionSecundaria();
+    // }
+    // else {
+    //   Serial.println("Comando inválido.");
+    // }
+}
+
+void TesteoAbrirEfector(){
+  Braccio.ServoMovement(1,0,15, 180, 0, 0,  1);
+  delay(2500);
+  Braccio.ServoMovement(1,0,15, 180, 0, 0,  70);
+  delay(2500);
 }
 
 
@@ -196,52 +205,48 @@ bool stringComplete = false;
 
 void loop() {
 
-  // Braccio.ServoMovement(20,0,15, 180, 0, 0,10);  
-  // delay(5000);
+  TesteoAbrirEfector();
 
-  // Braccio.ServoMovement(20,0,15, 180, 0, 0,70);  
-  // delay(5000);
+  // // Lectura de caracteres del puerto serial
+  // while (Serial.available()) {
+  //   char c = Serial.read();
+  //   if (c == '\n') {
+  //     stringComplete = true;
+  //   } else {
+  //     inputString += c;
+  //   }
+  // }
 
-  // Lectura de caracteres del puerto serial
-  while (Serial.available()) {
-    char c = Serial.read();
-    if (c == '\n') {
-      stringComplete = true;
-    } else {
-      inputString += c;
-    }
-  }
+  // // Si llegó una línea completa
+  // if (stringComplete) {
 
-  // Si llegó una línea completa
-  if (stringComplete) {
+  //   int m1, m2, m3, m4, m5, m6;
 
-    int m1, m2, m3, m4, m5, m6;
+  //   // Parseo limpio sin breaks ni loops complejos
+  //   int parsed = sscanf(
+  //     inputString.c_str(),
+  //     "%d,%d,%d,%d,%d,%d",
+  //     &m1, &m2, &m3, &m4, &m5, &m6
+  //   );
 
-    // Parseo limpio sin breaks ni loops complejos
-    int parsed = sscanf(
-      inputString.c_str(),
-      "%d,%d,%d,%d,%d,%d",
-      &m1, &m2, &m3, &m4, &m5, &m6
-    );
+  //   if (parsed == 6) {
+  //     // Llamar a la función con las 6 variables por nombre
+  //     CambioDePosicion(m1, m2, m3, m4, m5, m6);
+  //     Serial.println(
+  //       String("Arduino recibió: ") +
+  //       m1 + "," +
+  //       m2 + "," +
+  //       m3 + "," +
+  //       m4 + "," +
+  //       m5 + "," +
+  //       m6
+  //     );
+  //   } else {
+  //     Serial.println("ERROR_FORMATO");
+  //   }
 
-    if (parsed == 6) {
-      // Llamar a la función con las 6 variables por nombre
-      CambioDePosicion(m1, m2, m3, m4, m5, m6);
-      Serial.println(
-        String("Arduino recibió: ") +
-        m1 + "," +
-        m2 + "," +
-        m3 + "," +
-        m4 + "," +
-        m5 + "," +
-        m6
-      );
-    } else {
-      Serial.println("ERROR_FORMATO");
-    }
-
-    // Reset del buffer
-    inputString = "";
-    stringComplete = false;
-  }
+  //   // Reset del buffer
+  //   inputString = "";
+  //   stringComplete = false;
+  // }
 }
