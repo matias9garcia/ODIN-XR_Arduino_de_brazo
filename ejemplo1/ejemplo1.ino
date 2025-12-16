@@ -63,8 +63,8 @@ void PosicionSegura(){
 }
 
 void CambioDePosicion(int m1, int m2, int m3, int m4, int m5, int m6) {
-    Braccio.ServoMovement(80,m1,m2, m3, m4, m5, m6);
-    delay(5000);
+    Braccio.ServoMovement(10,m1,m2, m3, m4, m5, m6);
+    // delay(5000);
     // if (m1 >= 0 && m1 < 60) {
     //   PosicionInicial();
     // }
@@ -106,98 +106,6 @@ float rad2deg(float r){
 //  IK: ingresa (x,y,z) deseado
 // genera m1..m4
 // =============================
-bool IK_Braccio(float x, float y, float z, int &m1, int &m2, int &m3, int &m4) {
-  // 1) Ángulo base
-  m1 = rad2deg(atan2(y, x));
-  if(m1 < 0) m1 += 360;
-  if(m1 > 180) return false;
-
-  // 2) Centro muñeca
-  float R = sqrt(x*x + y*y);
-  float Z = z - d1;
-
-  // Distancia hombro–muñeca
-  float D = sqrt(R*R + Z*Z);
-
-  // 3) Ley del coseno: codo
-  float cos_angle3 = (D*D - L2*L2 - L3*L3) / (2 * L2 * L3);
-
-  if(cos_angle3 > 1 || cos_angle3 < -1) return false;
-
-  float angle3 = acos(cos_angle3);  // radianes
-  m3 = 180 - rad2deg(angle3);       // Braccio invertido
-
-  // 4) Hombro
-  float angle2 = atan2(Z, R) - atan2(L3 * sin(angle3),
-                                     L2 + L3 * cos(angle3));
-  m2 = rad2deg(angle2) + 90;  // compensación mecánica Braccio
-
-  // 5) Muñeca vertical
-  m4 = 180 - (m2 + m3);
-
-  // Validación rangos mecánicos
-  if(m2 < 15 || m2 > 165) return false;
-  if(m3 < 0  || m3 > 180) return false;
-  if(m4 < 0  || m4 > 180) return false;
-
-  return true;
-}
-
-void MoverConIK(float x, float y, float z){
-  int ik1, ik2, ik3, ik4;
-
-  // Calcular valores dinámicos
-  float R_min, R_max, Z_min, Z_max;
-
-  float R = sqrt(x*x + y*y);
-
-  // Mostrar el punto solicitado
-  Serial.print("Intentando mover a → X="); Serial.print(x);
-  Serial.print("  Y="); Serial.print(y);
-  Serial.print("  Z="); Serial.println(z);
-
-  // ---------- VALIDACIÓN ANTES DE LA IK ----------
-  bool fuera = false;
-
-  if (R < R_min) {
-    Serial.print("❌ ERROR: Radio demasiado pequeño (R=");
-    Serial.print(R); Serial.println(" cm)");
-    fuera = true;
-  }
-  if (R > R_max) {
-    Serial.print("❌ ERROR: Radio demasiado grande (R=");
-    Serial.print(R); Serial.println(" cm)");
-    fuera = true;
-  }
-  if (z < Z_min) {
-    Serial.print("❌ ERROR: Z demasiado bajo (Z=");
-    Serial.print(z); Serial.println(" cm)");
-    fuera = true;
-  }
-  if (z > Z_max) {
-    Serial.print("❌ ERROR: Z demasiado alto (Z=");
-    Serial.print(z); Serial.println(" cm)");
-    fuera = true;
-  }
-
-  if (fuera) {
-    Serial.println("👉 Coordenadas fuera de los límites permitidos.");
-    return;
-  }
-
-  // ---------- Intento IK ----------
-  if(IK_Braccio(x, y, z, ik1, ik2, ik3, ik4)){
-    Serial.print("IK OK → ");
-    Serial.print(ik1); Serial.print(", ");
-    Serial.print(ik2); Serial.print(", ");
-    Serial.print(ik3); Serial.print(", ");
-    Serial.println(ik4);
-
-    Braccio.ServoMovement(20, ik1, ik2, ik3, ik4, 90, m6);
-  } else {
-    Serial.println("IK falló: punto NO se puede alcanzar por ángulos.");
-  }
-}
 
 
 String inputString = "";
@@ -205,48 +113,48 @@ bool stringComplete = false;
 
 void loop() {
 
-  TesteoAbrirEfector();
+  // TesteoAbrirEfector();
 
-  // // Lectura de caracteres del puerto serial
-  // while (Serial.available()) {
-  //   char c = Serial.read();
-  //   if (c == '\n') {
-  //     stringComplete = true;
-  //   } else {
-  //     inputString += c;
-  //   }
-  // }
+  // Lectura de caracteres del puerto serial
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n') {
+      stringComplete = true;
+    } else {
+      inputString += c;
+    }
+  }
 
-  // // Si llegó una línea completa
-  // if (stringComplete) {
+  // Si llegó una línea completa
+  if (stringComplete) {
 
-  //   int m1, m2, m3, m4, m5, m6;
+    int m1, m2, m3, m4, m5, m6;
 
-  //   // Parseo limpio sin breaks ni loops complejos
-  //   int parsed = sscanf(
-  //     inputString.c_str(),
-  //     "%d,%d,%d,%d,%d,%d",
-  //     &m1, &m2, &m3, &m4, &m5, &m6
-  //   );
+    // Parseo limpio sin breaks ni loops complejos
+    int parsed = sscanf(
+      inputString.c_str(),
+      "%d,%d,%d,%d,%d,%d",
+      &m1, &m2, &m3, &m4, &m5, &m6
+    );
 
-  //   if (parsed == 6) {
-  //     // Llamar a la función con las 6 variables por nombre
-  //     CambioDePosicion(m1, m2, m3, m4, m5, m6);
-  //     Serial.println(
-  //       String("Arduino recibió: ") +
-  //       m1 + "," +
-  //       m2 + "," +
-  //       m3 + "," +
-  //       m4 + "," +
-  //       m5 + "," +
-  //       m6
-  //     );
-  //   } else {
-  //     Serial.println("ERROR_FORMATO");
-  //   }
+    if (parsed == 6) {
+      // Llamar a la función con las 6 variables por nombre
+      CambioDePosicion(m1, m2, m3, m4, m5, m6);
+      Serial.println(
+        String("Arduino recibió: ") +
+        m1 + "," +
+        m2 + "," +
+        m3 + "," +
+        m4 + "," +
+        m5 + "," +
+        m6
+      );
+    } else {
+      Serial.println("ERROR_FORMATO");
+    }
 
-  //   // Reset del buffer
-  //   inputString = "";
-  //   stringComplete = false;
-  // }
+    // Reset del buffer
+    inputString = "";
+    stringComplete = false;
+  }
 }
